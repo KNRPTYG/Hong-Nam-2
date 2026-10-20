@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import { INITIAL_RESTROOMS, Restroom } from "./data";
+import { Restroom } from "./data";
 
 export const DEMO_EMAIL = "student@campus.edu";
 export const DEMO_PASSWORD = "password123";
@@ -21,8 +21,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  // ใช้ INITIAL_RESTROOMS เป็นค่าเริ่มต้นเพื่อป้องกันหน้าขาว
-  const [restrooms, setRestrooms] = useState<Restroom[]>(INITIAL_RESTROOMS);
+  const [restrooms, setRestrooms] = useState<Restroom[]>([]);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [history, setHistory] = useState<Array<{ name: string; id?: string }>>([{ name: "home" }]);
@@ -36,21 +35,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetched.push({
           id: doc.id,
           ...data,
-          facilities: data.facilities || [], // ป้องกัน facilities เป็น undefined
+          facilities: data.facilities || [],
         } as Restroom);
       });
-
-      if (fetched.length > 0) {
-        setRestrooms(() => {
-          const combined = [...fetched];
-          INITIAL_RESTROOMS.forEach((init) => {
-            if (!combined.some((r) => r.id === init.id)) {
-              combined.push(init);
-            }
-          });
-          return combined;
-        });
-      }
+      setRestrooms(fetched);
     });
     return () => unsubscribe();
   }, []);
