@@ -14,6 +14,10 @@ import { FACILITY_OPTIONS, Restroom, normalizeFloor } from "../data";
 import { MascotHappy } from "./Mascots";
 import { Btn, Chip, Field, SubHeader, inputCls } from "./ui";
 
+// ─── Firebase Import ────────────────────────────────────────────────────────
+import { db } from "../lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+
 interface FormState {
   name: string;
   building: string;
@@ -36,7 +40,7 @@ const EMPTY: FormState = {
 
 const FLOOR_QUICK = ["Basement", "Floor 1", "Floor 2", "Floor 3", "Floor 4"];
 
-// Downscale to keep localStorage usage small
+// Downscale to keep localStorage / Firestore document size small
 const readPhoto = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const fr = new FileReader();
@@ -90,7 +94,7 @@ export default function AddRestroomScreen() {
     }
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (submitting) return;
     const e: typeof errors = {};
     if (!form.name.trim()) e.name = "Give this restroom a name.";
@@ -119,8 +123,9 @@ export default function AddRestroomScreen() {
       form.building.trim();
 
     setSubmitting(true);
-    window.setTimeout(() => {
-      const rec = addRestroom({
+
+    try {
+      const newRestroomData = {
         name: form.name,
         building,
         floor,
@@ -129,10 +134,26 @@ export default function AddRestroomScreen() {
         accessibility: form.accessibility,
         notes: form.notes,
         photo,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 1. บันทึกลง Firebase Cloud Firestore ถาวร
+      const docRef = await addDoc(collection(db, "restrooms"), newRestroomData);
+
+      // 2. อัปเดต State ในหน้าจอ
+      const rec = addRestroom({
+        ...newRestroomData,
+        id: docRef.id,
       });
+
+      setCreated(rec || ({ id: docRef.id, ...newRestroomData } as Restroom));
+      showToast("บันทึกข้อมูลลง Firebase Database สำเร็จ!");
+    } catch (error) {
+      console.error("Firebase Error:", error);
+      showToast("เกิดข้อผิดพลาดในการบันทึกลง Database");
+    } finally {
       setSubmitting(false);
-      setCreated(rec);
-    }, 900);
+    }
   };
 
   // ── Success ──
@@ -152,15 +173,14 @@ export default function AddRestroomScreen() {
         </div>
         <div className="border-2 border-hn-line rounded-2xl bg-hn-card hn-sh-o4 p-4 mb-5">
           <span className="text-[10px] font-black uppercase tracking-wider bg-[#E35205] text-white border border-hn-line rounded-full px-2.5 py-0.5">
-            Community · Pending verification
+            Community · Saved to Firebase
           </span>
           <p className="text-hn-ink font-black mt-2">{created.name}</p>
           <p className="text-hn-mute text-xs font-semibold">
             {created.building} · {created.floor}
           </p>
           <p className="text-[11px] text-hn-mute font-semibold mt-2">
-            Saved in this browser only. It hasn't been officially verified and
-            has no map location yet.
+            บันทึกลงฐานข้อมูล Firebase สำเร็จแล้ว ข้อมูลจะคงอยู่ถาวรแม้ว่าจะรีเฟรชหน้าเว็บ
           </p>
         </div>
         <div className="flex flex-col gap-3">
@@ -194,8 +214,7 @@ export default function AddRestroomScreen() {
       <div className="border-2 border-hn-line rounded-2xl p-4 mb-4 bg-hn-hero hn-sh-o5">
         <p className="text-white text-sm font-bold leading-relaxed">
           Help other students find restrooms 🚻 Fill in the details below.
-          Submissions are marked <b>Pending verification</b> and saved on this
-          device only.
+          Submissions are saved directly to Google Firebase Database.
         </p>
       </div>
 
@@ -353,7 +372,7 @@ export default function AddRestroomScreen() {
           </Btn>
           <Btn type="submit" className="flex-[2] py-3.5" disabled={submitting}>
             {submitting ? (
-              "Submitting…"
+              "Saving to Firebase…"
             ) : (
               <>
                 <Check size={16} /> Submit Restroom
