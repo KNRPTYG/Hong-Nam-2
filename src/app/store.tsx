@@ -9,13 +9,15 @@ import {
 } from "react";
 import {
   EMPTY_FILTERS,
+  SEED_RESTROOMS,
+  SEED_REVIEWS,
+  newId,
+} from "./data";
+import type {
   Filters,
   Report,
   Restroom,
   Review,
-  SEED_RESTROOMS,
-  SEED_REVIEWS,
-  newId,
 } from "./data";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot, setDoc, doc } from "firebase/firestore";
@@ -47,7 +49,7 @@ const write = (store: Storage | undefined, key: string, value: unknown) => {
   try {
     store?.setItem(key, JSON.stringify(value));
   } catch {
-    /* storage full or unavailable: keep working in memory */
+    /* storage full or unavailable */
   }
 };
 
@@ -194,9 +196,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toastTimer.current = window.setTimeout(() => setToast(null), 2600);
   }, []);
 
-  // ─── Firebase Firestore Real-time Sync ────────────────────────────────────
+  // ─── Firebase Firestore Sync ──────────────────────────────────────────────
 
-  // ดึงข้อมูลห้องน้ำชุมชนจาก Firebase
   useEffect(() => {
     try {
       const unsub = onSnapshot(
@@ -235,7 +236,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setCommunity]);
 
-  // ดึงข้อมูลรีวิวจาก Firebase
   useEffect(() => {
     try {
       const unsub = onSnapshot(
@@ -274,7 +274,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     el.style.colorScheme = theme;
   }, [theme, settings.reduceMotion]);
 
-  // ป้องกัน undefined ใน facilities ด้วย Array.isArray
   const restrooms = useMemo(() => {
     const all = [...SEED_RESTROOMS, ...community];
     return all.map((r) => ({
@@ -336,7 +335,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setCommunity((c) => [rec, ...c]);
 
-      // บันทึกลง Firebase Firestore
       try {
         setDoc(doc(db, "restrooms", recId), rec).catch((err) =>
           console.error("Firebase save restroom error:", err)
@@ -365,7 +363,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setMyReviews((l) => [rv, ...l]);
 
-      // บันทึกลง Firebase Firestore
       try {
         setDoc(doc(db, "reviews", rvId), rv).catch((err) =>
           console.error("Firebase save review error:", err)
