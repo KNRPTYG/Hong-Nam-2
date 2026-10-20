@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import { Restroom } from "./data";
+import { INITIAL_RESTROOMS, Restroom } from "./data";
 
 export const DEMO_EMAIL = "student@campus.edu";
 export const DEMO_PASSWORD = "password123";
@@ -21,12 +21,11 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [restrooms, setRestrooms] = useState<Restroom[]>([]);
+  const [restrooms, setRestrooms] = useState<Restroom[]>(INITIAL_RESTROOMS);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [history, setHistory] = useState<Array<{ name: string; id?: string }>>([{ name: "home" }]);
 
-  // ดึงข้อมูล Real-time จาก Firebase Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "restrooms"), (snapshot) => {
       const fetched: Restroom[] = [];
@@ -38,7 +37,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           facilities: data.facilities || [],
         } as Restroom);
       });
-      setRestrooms(fetched);
+
+      if (fetched.length > 0) {
+        setRestrooms(fetched);
+      }
     });
     return () => unsubscribe();
   }, []);
