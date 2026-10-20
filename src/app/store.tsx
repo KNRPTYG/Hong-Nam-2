@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import { INITIAL_RESTROOMS, Restroom } from "./data";
+import { Restroom } from "./data";
 
 interface AppContextType {
   restrooms: Restroom[];
@@ -18,29 +18,19 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [restrooms, setRestrooms] = useState<Restroom[]>(INITIAL_RESTROOMS);
+  const [restrooms, setRestrooms] = useState<Restroom[]>([]);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [history, setHistory] = useState<Array<{ name: string; id?: string }>>([{ name: "home" }]);
 
-  // ดึงข้อมูลห้องน้ำ Real-time จาก Firebase Firestore
+  // ดึงข้อมูล Real-time จาก Firebase Firestore
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "restrooms"), (snapshot) => {
       const fetched: Restroom[] = [];
       snapshot.forEach((doc) => {
         fetched.push({ id: doc.id, ...doc.data() } as Restroom);
       });
-      if (fetched.length > 0) {
-        setRestrooms((prev) => {
-          const combined = [...fetched];
-          INITIAL_RESTROOMS.forEach((init) => {
-            if (!combined.some((r) => r.id === init.id)) {
-              combined.push(init);
-            }
-          });
-          return combined;
-        });
-      }
+      setRestrooms(fetched);
     });
     return () => unsubscribe();
   }, []);
