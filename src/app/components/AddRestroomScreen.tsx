@@ -9,8 +9,8 @@ import {
   MapPin,
   Tag,
 } from "lucide-react";
-import { useApp } from "../../store";
-import { FACILITY_OPTIONS, Restroom, normalizeFloor } from "../../data";
+import { useApp } from "../store";
+import { FACILITY_OPTIONS, Restroom, normalizeFloor } from "../data";
 import { MascotHappy } from "./Mascots";
 import { Btn, Chip, Field, SubHeader, inputCls } from "./ui";
 
