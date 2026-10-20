@@ -3,6 +3,9 @@ import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 import { Restroom } from "./data";
 
+export const DEMO_EMAIL = "student@campus.edu";
+export const DEMO_PASSWORD = "password123";
+
 interface AppContextType {
   restrooms: Restroom[];
   addRestroom: (restroom: Omit<Restroom, "id"> & { id?: string }) => Restroom;
